@@ -90,3 +90,116 @@ dtibragimov@sbercloud.ru, значит dtibragimov)
 # ранее мы настроили необходимые Security Groups. Если же доступа к машине все равно нет, через портал и кнопку Remote Login 
 # можно открыть веб версию консоли управления ВМ. Через учетные данные администратора и интерфейс можно проверить, включен ли
 # внутри фаерволл. При необходимости его можно удалить.
+
+Задание 4. Установка веб-приложения (веб-сайта) на Linux сервер
+
+1) Через Putty / Terminal / Kitty / CMD или другое подключаемся к нашему сервер в облаке по внешнему адресу (EIP)
+2) Обновляем Linux дистрибутив командой: apt -y upgrade
+# apt - стандартный менеджер пакетов для дистрибутива Ubuntu Linux
+# -y параметр, который не будет требовать дополнительных действий со стороны пользователя
+# upgrade - команда обновления всей системы
+3) После завершения обновления удалить ненужные пакеты командой apt autoremove
+# это нужно для того, что некоторые приложения при установки на линукс сервер используют пакеты источников ядра системы
+# после обновления ядра, данные источники тоже должны быть обновлены. При установке приложений, скорее всего возьмутся старые
+# источники, которые не будут совместимы с системой. Потому их лучше удалять перед установкой нового приложения.
+4) Устанавливаем приложение веб-сервера apt install nginx
+5) Активируем старт приложения при загрузке системы systemctl enable --now nginx
+6) Устанавливаем приложение базы данных для нашего веб приложения apt install mariadb-server maridb-client
+7) На всякий случай полностью отключаем Firewall системы systemctl disable --now ufw
+# ufw как и netplan, это новые пакеты прилоэений используемые в последних дистрибутивах Ubuntu Linux
+8) Активируем старт базы данных при загрузке: systemctl enable --now mariadb
+9) Перезагружаем систему reboot now
+10) После перезапуска ОС настраиваем базу данных командой mysql_secure_installation
+11) Далее ход выполнения действий:
+11.1) Enter current password for root (enter for none): <- Нажать Enter
+11.2) Set root password? [Y/n]: <- Y
+11.3) New password: <- Придумать и ввести новый пароль
+11.4) Re-enter new password: <- Переввести пароль
+11.5) Remove anonymous users? [Y/n]: <- Y
+11.6) Disallow root login remotely? [Y/n]: <- Y
+11.7) Remove test database and access to it? [Y/n]: <- Y
+11.8) Reload privilege tables now? [Y/n]: <- Y
+
+12) Создаем базу и ее настраиваем для приложения
+13) Выполняем команду mysql -u root -p
+13.1) Вводим пароль из пункта 11.3
+14) Далее по очереди выполнять команды скрипты:
+14.1) CREATE DATABASE wordpress;
+14.2) CREATE USER 'wordpress'@'localhost' IDENTIFIED BY 'wordpress';
+14.3) GRANT ALL ON wordpress.* TO 'wordpress'@'localhost' IDENTIFIED BY 'wordpress' WITH GRANT OPTION;
+14.4) FLUSH PRIVILEGES;
+14.5) EXIT;
+# Удовлетворительный вопрос при корректной выполнении команды: Query OK, 0 rows affected (0.00 sec)
+
+15) Установим пакет PHP для корректного исполнения нашего веб приложения: apt install -y php-fpm php-common php-mbstring 
+php-xmlrpc php-soap php-gd php-xml php-intl php-mysql php-cli php-ldap php-zip php-curl
+16) Изменить файл конфигурации PHP: nano /etc/php/7.2/fpm/php.ini
+17) Изменить следующие параметры:
+post_max_size = 100M
+memory_limit = 256M
+max_execution_time = 360
+upload_max_filesize = 100M
+date.timezone = Europe/Moscow
+# Поиск по файлу в nano можно делать через сочетание Ctrl+W, сохранение изменений Ctrl+S, выход Ctrl+X
+18) Перезапустить модуль systemctl php7.2-fpm
+19) Активировать запуск модуля systemctl enable --now php7.2-fpm
+
+20) Скачиваем необходимое нам приложение: cd /tmp && wget https://wordpress.org/latest.tar.gz
+21) Распаковываем приложение: tar -zxvf latest.tar.gz
+22) Переносим веб приложение в папке веб сервера: mv wordpress /var/www/html/wordpress
+23) Выдаем корректные права на папки командами:
+sudo chown -R www-data:www-data /var/www/html/wordpress/
+sudo chmod -R 755 /var/www/html/wordpress/
+24) Создаем файл конфигурации для нашего приложения:
+mv /var/www/html/wordpress/wp-config-sample.php /var/www/html/wordpress/wp-config.php
+25) Изменяем файл конфигурации: nano /var/www/html/wordpress/wp-config.php
+26) В нем изменяем:
+// ** MySQL settings - You can get this info from your web host ** //
+/** The name of the database for WordPress */
+define('DB_NAME', 'wordpress');
+
+/** MySQL database username */
+define('DB_USER', 'wordpress');
+
+/** MySQL database password */
+define('DB_PASSWORD', 'wordpress');
+
+/** MySQL hostname */
+define('DB_HOST', 'localhost');
+
+/** Database Charset to use in creating database tables. */
+define('DB_CHARSET', 'utf8');
+
+/** The Database Collate type. Don't change this if in doubt. */
+define('DB_COLLATE', '');
+
+27) Изменяем файл настройки приложения: nano /etc/nginx/sites-available/wordpress
+28) Вносим следующие настройки:
+server {
+    listen 80;
+    listen [::]:80;
+    root /var/www/html/wordpress;
+    index  index.php index.html index.htm;
+    server_name  <VPC IP Address> <EIP Address>;
+
+     client_max_body_size 100M;
+
+    location / {
+        try_files $uri $uri/ /index.php?$args;        
+    }
+
+    location ~ \.php$ {
+    include snippets/fastcgi-php.conf;
+    fastcgi_pass             unix:/var/run/php/php7.2-fpm.sock;
+    fastcgi_param   SCRIPT_FILENAME $document_root$fastcgi_script_name;
+    }
+}
+
+#!!! Важно заменить server_name на IP адреса из настроек ВМ консоли Sbercloud Advanced
+
+29) Активируем приложение и его настройки: ln -s /etc/nginx/sites-available/wordpress /etc/nginx/sites-enabled/
+30) Перезапускаем модуль и веб сервер: systemctl restart nginx.service && systemctl restart php7.2-fpm.service
+
+31) Далее в веб браузере вводим Внешний IP Адрес и должны увидеть страницу настройки веб приложения.
+
+# Результаты работы и скриншоты направить на почту dtibragimov@sbercloud.ru
