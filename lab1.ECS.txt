@@ -210,7 +210,7 @@ server {
 
 11) Активируем приложение и его настройки: ln -s /etc/nginx/sites-available/wordpress /etc/nginx/sites-enabled/
 12) Перезапускаем модуль и веб сервер: systemctl restart nginx.service && systemctl restart php7.2-fpm.service
-
 13) Далее в веб браузере вводим Внешний IP Адрес и должны увидеть страницу настройки веб приложения.
 
-# Результаты работы и скриншоты направить на почту dtibragimov@sbercloud.ru
+Работа выполнена.
+
