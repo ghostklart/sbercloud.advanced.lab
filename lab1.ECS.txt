@@ -1,8 +1,8 @@
 # Лабораторная работа номер 1. Развертывание виртуальной машины на базе Ubuntu Linux 
 и дальнейшее развертывание веб-сайта на ней
 
-# Задача данной работы заключается в обучении сотрудника Sbercloud создание виртуальной машины на базе платформы Huawei Cloud 
-# Platform. На примере установки веб-сайта на базе Wordpress, мы сможем пройти типичный клиентский путь: от создания ВМ до 
+# Задача данной работы заключается в обучении сотрудника Sbercloud создание виртуальной машины и базы данных (Database as a service) на базе платформы Huawei Cloud 
+# Platform. На примере установки веб-сайта на базе Wordpress, мы сможем пройти типичный клиентский путь: от создания ресурсов в облаке до 
 # развертывания своего приложения.
 
 Задание 1. Создание персонализированного проекта для своей работы.
@@ -81,18 +81,18 @@ spavel@example.ru, значит spavel)
 
 19) Закрываем вкладку и возвращаемся на прошлую
 20) Нажимаем на кнопку обновления (закругленная стрелочка)
-21) И выьираем нами созданную группу
+21) И выбираем нами созданную группу
 22) Далее нажимаем кнопку Next: Confirm
 23) На новой страничке проверяем параметры и жмем Apply Now
 24) Далее пойдет процесс создания виртуальной машины, который может занять время
 
-# Данными шагами мы настрили виртуальную машину с внешним доступом к ней. Ей будет присвоен свой внешний адрес, который можно
+# Данными шагами мы настроили виртуальную машину с внешним доступом к ней. Ей будет присвоен свой внешний адрес, который можно
 # далее использовать для удаленного подключения к созданным машинам. Необходимые порты со стороны сети портала открыты, так как
 # ранее мы настроили необходимые Security Groups. Если же доступа к машине все равно нет, через портал и кнопку Remote Login 
 # можно открыть веб версию консоли управления ВМ. Через учетные данные администратора и интерфейс можно проверить, включен ли
 # внутри фаерволл. При необходимости его можно удалить.
 
-Задание 4. Установка веб-приложения (веб-сайта) на Linux сервер
+Задание 4. Установка веб-сервера (для веб-сайта) на Linux сервер
 
 1) Через Putty / Terminal / Kitty / CMD или другое подключаемся к нашему сервер в облаке по внешнему адресу (EIP)
 2) Обновляем Linux дистрибутив командой: apt -y upgrade
@@ -105,56 +105,64 @@ spavel@example.ru, значит spavel)
 # источники, которые не будут совместимы с системой. Потому их лучше удалять перед установкой нового приложения.
 4) Устанавливаем приложение веб-сервера apt install nginx
 5) Активируем старт приложения при загрузке системы systemctl enable --now nginx
-6) Устанавливаем приложение базы данных для нашего веб приложения apt install mariadb-server maridb-client
-7) На всякий случай полностью отключаем Firewall системы systemctl disable --now ufw
+6) На всякий случай полностью отключаем Firewall системы systemctl disable --now ufw
 # ufw как и netplan, это новые пакеты прилоэений используемые в последних дистрибутивах Ubuntu Linux
-8) Активируем старт базы данных при загрузке: systemctl enable --now mariadb
-9) Перезагружаем систему reboot now
-10) После перезапуска ОС настраиваем базу данных командой mysql_secure_installation
-11) Далее ход выполнения действий:
-11.1) Enter current password for root (enter for none): <- Нажать Enter
-11.2) Set root password? [Y/n]: <- Y
-11.3) New password: <- Придумать и ввести новый пароль
-11.4) Re-enter new password: <- Переввести пароль
-11.5) Remove anonymous users? [Y/n]: <- Y
-11.6) Disallow root login remotely? [Y/n]: <- Y
-11.7) Remove test database and access to it? [Y/n]: <- Y
-11.8) Reload privilege tables now? [Y/n]: <- Y
-
-12) Создаем базу и ее настраиваем для приложения
-13) Выполняем команду mysql -u root -p
-13.1) Вводим пароль из пункта 11.3
-14) Далее по очереди выполнять команды скрипты:
-14.1) CREATE DATABASE wordpress;
-14.2) CREATE USER 'wordpress'@'localhost' IDENTIFIED BY 'wordpress';
-14.3) GRANT ALL ON wordpress.* TO 'wordpress'@'localhost' IDENTIFIED BY 'wordpress' WITH GRANT OPTION;
-14.4) FLUSH PRIVILEGES;
-14.5) EXIT;
-# Удовлетворительный вопрос при корректной выполнении команды: Query OK, 0 rows affected (0.00 sec)
-
-15) Установим пакет PHP для корректного исполнения нашего веб приложения: apt install -y php-fpm php-common php-mbstring 
+7) Установим пакет PHP для корректного исполнения нашего веб приложения: apt install -y php-fpm php-common php-mbstring \
 php-xmlrpc php-soap php-gd php-xml php-intl php-mysql php-cli php-ldap php-zip php-curl
-16) Изменить файл конфигурации PHP: nano /etc/php/7.2/fpm/php.ini
-17) Изменить следующие параметры:
+8) Изменить файл конфигурации PHP: nano /etc/php/7.2/fpm/php.ini
+9) Изменить следующие параметры:
 post_max_size = 100M
 memory_limit = 256M
 max_execution_time = 360
 upload_max_filesize = 100M
 date.timezone = Europe/Moscow
 # Поиск по файлу в nano можно делать через сочетание Ctrl+W, сохранение изменений Ctrl+S, выход Ctrl+X
-18) Перезапустить модуль systemctl php7.2-fpm
-19) Активировать запуск модуля systemctl enable --now php7.2-fpm
+10) Перезапустить модуль systemctl php7.2-fpm
+11) Активировать запуск модуля systemctl enable --now php7.2-fpm
 
-20) Скачиваем необходимое нам приложение: cd /tmp && wget https://wordpress.org/latest.tar.gz
-21) Распаковываем приложение: tar -zxvf latest.tar.gz
-22) Переносим веб приложение в папке веб сервера: mv wordpress /var/www/html/wordpress
-23) Выдаем корректные права на папки командами:
+Задание 5. Развертывание и настройка Базы данных для веб-приложения
+
+1) Возвращаемся на главную страницу через кнопку Homepage
+2) Далее в разделе Database выбираем опцию Relational Database Service
+3) Вверху нажимаем на зеленую кнопку Create DB Instance
+4) На странице настройки выставляем название в разделе DB Instance Name: lab_db_<username>
+5) DB Engine выбираем MySQL
+6) DB Engine Version: 8.0
+7) DB Instance Type: Single
+8) Instance Class: 2 vCPUs | 4 GB
+9) Storage оставляем по умолчанию
+10) Далее а разделе VPC настраиваем нашу локальную сеть по аналогии с ECS
+11) В разделе параметров прописываем параметры подключения пользователя root (для администрирования базы)
+12) Остальные параметры оставляем по умолчанию
+13) Создаем базу через кнопку Create Now
+# Создание базы может занять до 15 минут, так что бить тревогу не нужно
+
+14) Перейдем к настройке базы и ее подготовке к нашему приложению
+15) Как база будет создана нажимаем на название базы
+16) Переходим в раздел Accounts (субменю справа)
+17) Нажимаем Create Account
+18) Username: wordpress
+19) Password, Confirm password: какие хотите в рамках правил для паролей
+# пароль запомнить, он нам дальше понадобиться для настройки приложения
+20) Далее переходим в настройку Databases (субменю справа)
+21) Нажимаем Create Database
+22) Database name: wordpress
+23) Перенести пользователя wordpress из User Not Authorized в Authorized User
+24) В колонке Permission выбрать Read and write
+25) Нажимаем OK
+
+Задание 6. Настройка веб-приложения и запуск веб-сайта
+
+1) Скачиваем необходимое нам приложение: cd /tmp && wget https://wordpress.org/latest.tar.gz
+2) Распаковываем приложение: tar -zxvf latest.tar.gz
+3) Переносим веб приложение в папке веб сервера: mv wordpress /var/www/html/wordpress
+4) Выдаем корректные права на папки командами:
 sudo chown -R www-data:www-data /var/www/html/wordpress/
 sudo chmod -R 755 /var/www/html/wordpress/
-24) Создаем файл конфигурации для нашего приложения:
+5) Создаем файл конфигурации для нашего приложения:
 mv /var/www/html/wordpress/wp-config-sample.php /var/www/html/wordpress/wp-config.php
-25) Изменяем файл конфигурации: nano /var/www/html/wordpress/wp-config.php
-26) В нем изменяем:
+6) Изменяем файл конфигурации: nano /var/www/html/wordpress/wp-config.php
+7) В нем изменяем:
 // ** MySQL settings - You can get this info from your web host ** //
 /** The name of the database for WordPress */
 define('DB_NAME', 'wordpress');
@@ -163,10 +171,10 @@ define('DB_NAME', 'wordpress');
 define('DB_USER', 'wordpress');
 
 /** MySQL database password */
-define('DB_PASSWORD', 'wordpress');
+define('DB_PASSWORD', '!! пароль, который мы настроили для базы данных ранее !!');
 
 /** MySQL hostname */
-define('DB_HOST', 'localhost');
+define('DB_HOST', '!! адрес созданного нами экземпляра базы данных !!');
 
 /** Database Charset to use in creating database tables. */
 define('DB_CHARSET', 'utf8');
@@ -174,8 +182,10 @@ define('DB_CHARSET', 'utf8');
 /** The Database Collate type. Don't change this if in doubt. */
 define('DB_COLLATE', '');
 
-27) Изменяем файл настройки приложения: nano /etc/nginx/sites-available/wordpress
-28) Вносим следующие настройки:
+8) Сохраняем и выходим
+# Сохранение файла через сочетание CTRL+S, выйти через CTRL+X
+9) Изменяем файл настройки приложения: nano /etc/nginx/sites-available/wordpress
+10) Вносим следующие настройки:
 server {
     listen 80;
     listen [::]:80;
@@ -198,9 +208,9 @@ server {
 
 #!!! Важно заменить server_name на IP адреса из настроек ВМ консоли Sbercloud Advanced
 
-29) Активируем приложение и его настройки: ln -s /etc/nginx/sites-available/wordpress /etc/nginx/sites-enabled/
-30) Перезапускаем модуль и веб сервер: systemctl restart nginx.service && systemctl restart php7.2-fpm.service
+11) Активируем приложение и его настройки: ln -s /etc/nginx/sites-available/wordpress /etc/nginx/sites-enabled/
+12) Перезапускаем модуль и веб сервер: systemctl restart nginx.service && systemctl restart php7.2-fpm.service
 
-31) Далее в веб браузере вводим Внешний IP Адрес и должны увидеть страницу настройки веб приложения.
+13) Далее в веб браузере вводим Внешний IP Адрес и должны увидеть страницу настройки веб приложения.
 
 # Результаты работы и скриншоты направить на почту dtibragimov@sbercloud.ru
