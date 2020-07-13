@@ -1,0 +1,4 @@
+1) ECS, DB
+2) EIP, VPC, NAT GW
+3) OBS, S3
+4) CCE
